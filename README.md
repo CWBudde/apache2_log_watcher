@@ -16,7 +16,7 @@ A simple CLI tool written in Go to monitor Apache2 access logs and send notifica
 ## Installation
 
 ```bash
-git clone https://github.com/CWBUdde/apache2watcher.git
+git clone https://github.com/CWBudde/apache2_log_watcher.git
 cd apache2watcher
 go build -o apache2watcher
 ```
