@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/hpcloud/tail"
@@ -17,6 +18,9 @@ func WatchLog(logPath string, grep string, callback Callback) error {
 		ReOpen:    true,
 		MustExist: true,
 		Poll:      true,
+		Location: &tail.SeekInfo{
+			Whence: io.SeekEnd,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to tail file: %w", err)

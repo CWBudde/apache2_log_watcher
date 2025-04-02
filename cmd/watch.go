@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"time"
 
 	"apache2watcher/internal/config"
 	"apache2watcher/internal/notifier"
@@ -13,8 +14,8 @@ import (
 )
 
 var (
-	grep string
-  configPath string
+	grep       string
+	configPath string
 )
 
 var watchCmd = &cobra.Command{
@@ -23,23 +24,28 @@ var watchCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Watching logs...")
 		fmt.Printf("Grep filter: %s\n", grep)
-	
+
 		cfg, err := config.LoadConfig(configPath)
 		if err != nil {
 			slog.Error("Failed to load config", "error", err)
 			log.Fatalf("Failed to load config: %v", err)
 		}
-	
-		err = watcher.WatchLog("/var/log/apache2/access.log", grep, func(line string) {
-			slog.Info("Log matched", "line", line)
 
-			msg := "New visitor:\n" + line
+		debouncer := watcher.NewDebouncer(1*time.Hour, func(msg string) {
+			slog.Info("Sending debounced notification")
+			msg = "New visitor:\n" + msg
 			if err := notifier.Send(cfg, msg); err != nil {
-				slog.Error("Failed to send notification", "error", err)
+				slog.Error("Failed to send debounced alert", "error", err)
 			} else {
 				slog.Info("Notification sent successfully")
 			}
 		})
+
+		err = watcher.WatchLog("/var/log/apache2/access.log", grep, func(line string) {
+			slog.Debug("Matched line", "line", line)
+			debouncer.Trigger(line)
+		})
+
 		if err != nil {
 			slog.Error("Error watching log", "error", err)
 			log.Fatalf("Error watching log: %v", err)
