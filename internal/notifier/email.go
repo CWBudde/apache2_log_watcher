@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"fmt"
+	"log/slog"
 	"net/smtp"
 )
 
@@ -29,6 +30,7 @@ func SendEmail(cfg Config, body string) error {
 		msg)
 
 	if err != nil {
+		slog.Error("Email send failed", "error", err)
 		return fmt.Errorf("email send error: %w", err)
 	}
 

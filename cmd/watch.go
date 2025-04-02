@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"log/slog"
 
 	"apache2watcher/internal/config"
 	"apache2watcher/internal/notifier"
@@ -25,16 +26,22 @@ var watchCmd = &cobra.Command{
 	
 		cfg, err := config.LoadConfig(configPath)
 		if err != nil {
+			slog.Error("Failed to load config", "error", err)
 			log.Fatalf("Failed to load config: %v", err)
 		}
 	
 		err = watcher.WatchLog("/var/log/apache2/access.log", grep, func(line string) {
+			slog.Info("Log matched", "line", line)
+
 			msg := "New visitor:\n" + line
 			if err := notifier.Send(cfg, msg); err != nil {
-				log.Println("Notify error:", err)
+				slog.Error("Failed to send notification", "error", err)
+			} else {
+				slog.Info("Notification sent successfully")
 			}
 		})
 		if err != nil {
+			slog.Error("Error watching log", "error", err)
 			log.Fatalf("Error watching log: %v", err)
 		}
 	},
